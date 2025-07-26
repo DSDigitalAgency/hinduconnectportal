@@ -31,17 +31,50 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '20', 10);
     const skip = (page - 1) * limit;
     const search = url.searchParams.get('search')?.trim();
+    const state = url.searchParams.get('state')?.trim();
+    const deity = url.searchParams.get('deity')?.trim();
+    const category = url.searchParams.get('category')?.trim();
+    
     let filter: Record<string, unknown> = {};
+    
+    // Build filter conditions
+    const conditions: Record<string, unknown>[] = [];
+    
     if (search) {
-      filter = {
+      conditions.push({
         $or: [
           { 'basicInfo.name': { $regex: search, $options: 'i' } },
-          { 'location.address': { $regex: search, $options: 'i' } },
+          { 'basicInfo.alternateName': { $regex: search, $options: 'i' } },
+          { 'location.address.city': { $regex: search, $options: 'i' } },
+          { 'location.address.district': { $regex: search, $options: 'i' } },
         ],
-      };
+      });
     }
+    
+    if (state) {
+      conditions.push({ 'location.address.state': { $regex: state, $options: 'i' } });
+    }
+    
+    if (deity) {
+      conditions.push({
+        $or: [
+          { 'basicInfo.primaryDeity': { $regex: deity, $options: 'i' } },
+          { 'deities.name': { $regex: deity, $options: 'i' } }
+        ]
+      });
+    }
+    
+    if (category) {
+      conditions.push({ 'categories.value': { $regex: category, $options: 'i' } });
+    }
+
+    if (conditions.length > 0) {
+      filter = conditions.length === 1 ? conditions[0] : { $and: conditions };
+    }
+    
     const total = await db.collection('temples').countDocuments(filter);
     const items = await db.collection('temples').find(filter).skip(skip).limit(limit).toArray();
+    
     return NextResponse.json({ items, total, page, limit });
   } catch (error) {
     return NextResponse.json({ message: 'Error fetching temples', error: String(error) }, { status: 500 });

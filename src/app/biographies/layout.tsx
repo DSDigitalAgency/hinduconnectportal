@@ -8,7 +8,7 @@ function handleLogout() {
   window.location.href = '/';
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function BiographiesLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 bg-orange-600 text-white flex flex-col py-8 px-4 justify-between">

@@ -82,6 +82,7 @@ export default function AdminVideosPage() {
   const [total, setTotal] = useState(0);
   const [limit] = useState(20);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const router = useRouter();
 
   // Session check
@@ -114,6 +115,26 @@ export default function AdminVideosPage() {
 
   useEffect(() => { fetchVideos(); }, [page, fetchVideos]);
 
+  const handleDelete = async (videoId: string) => {
+    if (!confirm("Are you sure you want to delete this video?")) return;
+    
+    setDeleteLoading(videoId);
+    try {
+      const res = await fetch(`/api/videos/${videoId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        alert("Failed to delete video");
+        return;
+      }
+      fetchVideos();
+    } catch (err) {
+      alert("Error deleting video");
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -131,6 +152,7 @@ export default function AdminVideosPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video URL</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -140,6 +162,15 @@ export default function AdminVideosPage() {
                     <a href={video.videourl} target="_blank" rel="noopener noreferrer">{video.videourl}</a>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(video.createddt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button 
+                      onClick={() => handleDelete(video._id)} 
+                      disabled={deleteLoading === video._id} 
+                      className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                    >
+                      {deleteLoading === video._id ? "Deleting..." : "Delete"}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

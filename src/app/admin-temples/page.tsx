@@ -7,146 +7,53 @@ interface Temple {
   templeId: string;
   basicInfo: {
     name: string;
+    alternateName?: string;
+    type?: string;
+    primaryDeity?: string;
   };
   location: {
     address: {
       state: string;
       country: string;
+      city?: string;
+      district?: string;
+      area?: string;
+      street?: string;
+    };
+    coordinates?: {
+      latitude?: number;
+      longitude?: number;
     };
   };
-}
-
-function AddTempleModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
-  const [name, setName] = useState("");
-  const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/temples", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          basicInfo: { name },
-          location: { address: { state, country } },
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || "Failed to add temple");
-        setLoading(false);
-        return;
-      }
-      setLoading(false);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError("Network error");
-      setLoading(false);
-    }
+  deities?: Array<{
+    name: string;
+    type: string;
+    description?: string;
+  }>;
+  categories?: Array<{
+    type: string;
+    value: string;
+    priority?: number;
+  }>;
+  architecture?: Record<string, unknown>;
+  attractions?: {
+    nearbyTemples?: string[];
+    touristSpots?: string[];
   };
-
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
-        <button type="button" onClick={onClose} className="absolute top-2 right-2 text-xl font-bold text-orange-600">×</button>
-        <h2 className="text-2xl font-bold mb-6 text-orange-600">Add New Temple</h2>
-        {error && <div className="mb-4 text-red-600">{error}</div>}
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">Name</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border px-3 py-2 rounded" required />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">State</label>
-          <input type="text" value={state} onChange={e => setState(e.target.value)} className="w-full border px-3 py-2 rounded" required />
-        </div>
-        <div className="mb-6">
-          <label className="block mb-1 font-medium">Country</label>
-          <input type="text" value={country} onChange={e => setCountry(e.target.value)} className="w-full border px-3 py-2 rounded" required />
-        </div>
-        <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-black font-bold py-2 rounded transition" disabled={loading}>
-          {loading ? "Adding..." : "Add Temple"}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-function EditTempleModal({ open, onClose, onSuccess, temple }: { open: boolean; onClose: () => void; onSuccess: () => void; temple: Temple | null }) {
-  // Always call hooks first
-  const [name, setName] = useState(temple?.basicInfo?.name || "");
-  const [state, setState] = useState(temple?.location?.address?.state || "");
-  const [country, setCountry] = useState(temple?.location?.address?.country || "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    setName(temple?.basicInfo?.name || "");
-    setState(temple?.location?.address?.state || "");
-    setCountry(temple?.location?.address?.country || "");
-  }, [temple]);
-
-  if (!temple) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/temples/${temple._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          basicInfo: { name },
-          location: { address: { state, country } },
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || "Failed to update temple");
-        setLoading(false);
-        return;
-      }
-      setLoading(false);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError("Network error");
-      setLoading(false);
-    }
+  facilities?: Record<string, unknown>;
+  history?: Record<string, unknown>;
+  worship?: Record<string, unknown>;
+  travel?: Record<string, unknown>;
+  media?: Record<string, unknown>;
+  metadata?: {
+    sourceFile?: string;
+    extractedFrom?: string;
   };
-
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
-        <button type="button" onClick={onClose} className="absolute top-2 right-2 text-xl font-bold text-orange-600">×</button>
-        <h2 className="text-2xl font-bold mb-6 text-orange-600">Edit Temple</h2>
-        {error && <div className="mb-4 text-red-600">{error}</div>}
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">Name</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border px-3 py-2 rounded" required />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">State</label>
-          <input type="text" value={state} onChange={e => setState(e.target.value)} className="w-full border px-3 py-2 rounded" required />
-        </div>
-        <div className="mb-6">
-          <label className="block mb-1 font-medium">Country</label>
-          <input type="text" value={country} onChange={e => setCountry(e.target.value)} className="w-full border px-3 py-2 rounded" required />
-        </div>
-        <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-black font-bold py-2 rounded transition" disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
-        </button>
-      </form>
-    </div>
-  );
+  version?: {
+    current?: number;
+    createdAt?: string;
+    updatedAt?: string;
+  };
 }
 
 export default function AdminTemplesPage() {
@@ -155,13 +62,13 @@ export default function AdminTemplesPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editTemple, setEditTemple] = useState<Temple | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [jumpPage, setJumpPage] = useState("");
+  const [filterState, setFilterState] = useState("");
+  const [filterDeity, setFilterDeity] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
 
   const router = useRouter();
 
@@ -183,6 +90,10 @@ export default function AdminTemplesPage() {
       limit: String(limit),
     });
     if (search) params.append('search', search);
+    if (filterState) params.append('state', filterState);
+    if (filterDeity) params.append('deity', filterDeity);
+    if (filterCategory) params.append('category', filterCategory);
+    
     fetch(`/api/temples?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
@@ -199,13 +110,12 @@ export default function AdminTemplesPage() {
   useEffect(() => {
     fetchTemples();
     // eslint-disable-next-line
-  }, [page, limit, search]);
+  }, [page, limit, search, filterState, filterDeity, filterCategory]);
 
   const totalPages = Math.ceil(total / limit);
 
   const handleEdit = (temple: Temple) => {
-    setEditTemple(temple);
-    setShowEditModal(true);
+    router.push(`/admin-temples/edit/${temple._id}`);
   };
 
   const handleDelete = async (temple: Temple) => {
@@ -225,87 +135,214 @@ export default function AdminTemplesPage() {
     }
   };
 
+  const getDeityNames = (deities?: Array<{name: string; type: string}>) => {
+    if (!deities || deities.length === 0) return 'Not specified';
+    return deities.map(d => d.name).join(', ');
+  };
+
+  const getCategoryNames = (categories?: Array<{type: string; value: string}>) => {
+    if (!categories || categories.length === 0) return 'General';
+    return categories.map(c => c.value.replace(/_/g, ' ')).join(', ');
+  };
+
+  const getLocationString = (temple: Temple) => {
+    const address = temple.location?.address;
+    if (!address) return 'Location not specified';
+    
+    const parts = [];
+    if (address.city && address.city !== 'Unknown') parts.push(address.city);
+    if (address.district) parts.push(address.district);
+    if (address.state) parts.push(address.state);
+    if (address.country) parts.push(address.country);
+    
+    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
+  };
+
   return (
     <div className="p-4 sm:p-8 bg-[#fff7ed] min-h-screen">
-      <AddTempleModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={fetchTemples} />
-      <EditTempleModal open={showEditModal} onClose={() => setShowEditModal(false)} onSuccess={fetchTemples} temple={editTemple} />
       <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
         <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Manage Temples</h1>
         <button
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-black font-bold px-5 py-2 rounded-lg shadow transition text-base focus:outline-none focus:ring-2 focus:ring-orange-400"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => router.push('/admin-temples/add')}
         >
           <span role="img" aria-label="add">➕</span> Add New Temple
         </button>
       </div>
-      <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            setSearch(searchInput);
-            setPage(1);
-          }}
-          className="flex gap-2 w-full sm:w-auto"
-        >
-          <input
-            type="text"
-            placeholder="Search by name, state, or country..."
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            className="border px-3 py-2 rounded w-full sm:w-64"
-          />
-          <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-black font-bold px-4 py-2 rounded transition">Search</button>
-          {search && (
-            <button type="button" onClick={() => { setSearch(""); setSearchInput(""); setPage(1); }} className="bg-gray-200 hover:bg-gray-300 text-black font-bold px-3 py-2 rounded transition">Clear</button>
-          )}
-        </form>
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            const num = Number(jumpPage);
-            if (num >= 1 && num <= totalPages) setPage(num);
-          }}
-          className="flex gap-2 items-center"
-        >
-          <input
-            type="number"
-            min={1}
-            max={totalPages}
-            value={jumpPage}
-            onChange={e => setJumpPage(e.target.value)}
-            placeholder="Page #"
-            className="border px-2 py-2 rounded w-20"
-          />
-          <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-black font-bold px-3 py-2 rounded transition">Go</button>
-        </form>
+
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search by name..."
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">State</label>
+            <select
+              value={filterState}
+              onChange={e => setFilterState(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            >
+              <option value="">All States</option>
+              <option value="Tamilnadu">Tamil Nadu</option>
+              <option value="Karnataka">Karnataka</option>
+              <option value="Telangana">Telangana</option>
+              <option value="Kerala">Kerala</option>
+              <option value="Andhra Pradesh">Andhra Pradesh</option>
+              <option value="Odisha">Odisha</option>
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Uttar Pradesh">Uttar Pradesh</option>
+              <option value="108 Divya Desham">108 Divya Desham</option>
+              <option value="Rajasthan">Rajasthan</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Primary Deity</label>
+            <select
+              value={filterDeity}
+              onChange={e => setFilterDeity(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            >
+              <option value="">All Deities</option>
+              <option value="Vishnu">Vishnu</option>
+              <option value="Shiva">Shiva</option>
+              <option value="Devi">Devi</option>
+              <option value="Ganesha">Ganesha</option>
+              <option value="Hanuman">Hanuman</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            >
+              <option value="">All Categories</option>
+              <option value="108_divya_desham">108 Divya Desham</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setSearch(searchInput);
+              setPage(1);
+            }}
+            className="bg-orange-500 hover:bg-orange-600 text-black font-bold px-4 py-2 rounded transition"
+          >
+            Search
+          </button>
+          <button
+            onClick={() => {
+              setSearch("");
+              setSearchInput("");
+              setFilterState("");
+              setFilterDeity("");
+              setFilterCategory("");
+              setPage(1);
+            }}
+            className="bg-gray-200 hover:bg-gray-300 text-black font-bold px-3 py-2 rounded transition"
+          >
+            Clear All
+          </button>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              const num = Number(jumpPage);
+              if (num >= 1 && num <= totalPages) setPage(num);
+            }}
+            className="flex gap-2 items-center ml-auto"
+          >
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={jumpPage}
+              onChange={e => setJumpPage(e.target.value)}
+              placeholder="Page #"
+              className="border px-2 py-2 rounded w-20"
+            />
+            <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-black font-bold px-3 py-2 rounded transition">
+              Go
+            </button>
+          </form>
+        </div>
       </div>
+
+      {/* Results */}
       <div className="overflow-x-auto rounded-2xl shadow border bg-white">
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 bg-orange-100 z-10 rounded-t-2xl">
             <tr>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tl-2xl">ID</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Name</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tl-2xl">Temple Info</th>
               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Location</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Deities</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Categories</th>
               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tr-2xl">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} className="text-center py-12"><span className="animate-spin inline-block mr-2">🌀</span>Loading...</td></tr>
+              <tr><td colSpan={5} className="text-center py-12"><span className="animate-spin inline-block mr-2">🌀</span>Loading...</td></tr>
             ) : temples.length === 0 ? (
-              <tr><td colSpan={4} className="text-center py-12">No temples found.</td></tr>
+              <tr><td colSpan={5} className="text-center py-12">No temples found.</td></tr>
             ) : (
               temples.map((temple, idx) => (
                 <tr key={temple._id} className={
                   `transition ${idx % 2 === 0 ? 'bg-orange-50/50' : 'bg-white'} hover:bg-orange-100`}
                 >
-                  <td className="border-b px-4 py-2 font-mono align-middle text-left" title={temple.templeId}>{temple.templeId?.slice(0, 8) || ''}…</td>
-                  <td className="border-b px-4 py-2 font-medium align-middle text-left">{temple.basicInfo?.name}</td>
-                  <td className="border-b px-4 py-2 align-middle text-left">{temple.location?.address?.state || ''}, {temple.location?.address?.country || ''}</td>
-                  <td className="border-b px-4 py-2 align-middle text-center whitespace-nowrap">
-                    <span className="inline-block">
+                  <td className="border-b px-4 py-3">
+                    <div className="space-y-1">
+                      <div className="font-semibold text-gray-900">{temple.basicInfo?.name}</div>
+                      {temple.basicInfo?.alternateName && (
+                        <div className="text-sm text-gray-600">({temple.basicInfo.alternateName})</div>
+                      )}
+                      <div className="text-xs text-gray-500 font-mono" title={temple.templeId}>
+                        ID: {temple.templeId?.slice(0, 12)}...
+                      </div>
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3">
+                    <div className="text-sm">
+                      <div className="font-medium">{getLocationString(temple)}</div>
+                      {temple.location?.coordinates && (
+                        <div className="text-xs text-gray-500">
+                          📍 {temple.location.coordinates.latitude?.toFixed(4)}, {temple.location.coordinates.longitude?.toFixed(4)}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3">
+                    <div className="text-sm">
+                      <div className="font-medium">{getDeityNames(temple.deities)}</div>
+                      {temple.basicInfo?.primaryDeity && (
+                        <div className="text-xs text-gray-500">Primary: {temple.basicInfo.primaryDeity}</div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3">
+                    <div className="text-sm">
+                      <div className="font-medium">{getCategoryNames(temple.categories)}</div>
+                      {temple.categories && temple.categories.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {temple.categories.map(c => c.type.replace(/_/g, ' ')).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3 text-center whitespace-nowrap">
+                    <div className="flex gap-2 justify-center">
                       <button
-                        className="inline-flex items-center gap-1 px-3 py-1 mr-2 rounded bg-orange-400 hover:bg-orange-600 text-black font-semibold text-xs transition shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded bg-orange-400 hover:bg-orange-600 text-black font-semibold text-xs transition shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
                         title="Edit"
                         onClick={() => handleEdit(temple)}
                       >
@@ -319,7 +356,7 @@ export default function AdminTemplesPage() {
                       >
                         {deletingId === temple._id ? <span className="animate-spin">🗑️</span> : <span role="img" aria-label="delete">🗑️</span>} Delete
                       </button>
-                    </span>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -327,6 +364,8 @@ export default function AdminTemplesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
       <div className="flex gap-2 items-center justify-center mt-8">
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -335,7 +374,7 @@ export default function AdminTemplesPage() {
         >
           ← Previous
         </button>
-        <span className="font-semibold text-base">Page {page} of {totalPages || 1}</span>
+        <span className="font-semibold text-base">Page {page} of {totalPages || 1} ({total} total temples)</span>
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages || totalPages === 0}

@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '20', 10);
     const skip = (page - 1) * limit;
     const search = url.searchParams.get('search')?.trim();
-    const language = url.searchParams.get('language')?.trim();
     let filter: Record<string, unknown> = {};
     
     // Build filter conditions
@@ -28,24 +27,21 @@ export async function GET(req: NextRequest) {
       conditions.push({
         $or: [
           { 'title': { $regex: search, $options: 'i' } },
-          { 'text': { $regex: search, $options: 'i' } },
+          { 'content': { $regex: search, $options: 'i' } },
         ],
       });
-    }
-    if (language) {
-      conditions.push({ 'lang': { $regex: language, $options: 'i' } });
     }
 
     if (conditions.length > 0) {
       filter = conditions.length === 1 ? conditions[0] : { $and: conditions };
     }
     
-    const total = await db.collection('stotras').countDocuments(filter);
-    const items = await db.collection('stotras').find(filter).skip(skip).limit(limit).toArray();
+    const total = await db.collection('biographies').countDocuments(filter);
+    const items = await db.collection('biographies').find(filter).skip(skip).limit(limit).toArray();
     
     return NextResponse.json({ items, total, page, limit });
   } catch (error) {
-    return NextResponse.json({ message: 'Error fetching stotras', error: String(error) }, { status: 500 });
+    return NextResponse.json({ message: 'Error fetching biographies', error: String(error) }, { status: 500 });
   } finally {
     await client.close();
   }
@@ -65,28 +61,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Title is required' }, { status: 400 });
     }
     
-    if (!body.text) {
-      return NextResponse.json({ message: 'Text is required' }, { status: 400 });
-    }
-    
-    if (!body.language) {
-      return NextResponse.json({ message: 'Language is required' }, { status: 400 });
+    if (!body.content) {
+      return NextResponse.json({ message: 'Content is required' }, { status: 400 });
     }
     
     // Create the document with simplified structure
     const doc = {
       title: body.title,
-      text: body.text,
-      lang: body.language,
+      content: body.content,
       createddt: new Date().toISOString(),
       updateddt: new Date().toISOString(),
     };
     
-    const result = await db.collection('stotras').insertOne(doc);
-    const inserted = await db.collection('stotras').findOne({ _id: result.insertedId });
+    const result = await db.collection('biographies').insertOne(doc);
+    const inserted = await db.collection('biographies').findOne({ _id: result.insertedId });
     return NextResponse.json({ item: inserted }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ message: 'Error creating stotra', error: String(error) }, { status: 500 });
+    return NextResponse.json({ message: 'Error creating biography', error: String(error) }, { status: 500 });
   } finally {
     await client.close();
   }
