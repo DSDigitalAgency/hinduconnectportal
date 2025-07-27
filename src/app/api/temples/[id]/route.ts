@@ -44,21 +44,16 @@ export async function PUT(req: NextRequest, context: any) {
     const db = client.db(dbName);
     const { id } = context.params;
     
-    if (!body.basicInfo?.name) {
-      return NextResponse.json({ message: 'Temple name is required' }, { status: 400 });
-    }
-    
-    if (!body.location?.address?.state) {
-      return NextResponse.json({ message: 'State is required' }, { status: 400 });
+    if (!body.title || !body.category || !body.text) {
+      return NextResponse.json({ message: 'Title, category, and text are required' }, { status: 400 });
     }
     
     // Create the update document with proper structure
     const updateDoc = {
-      basicInfo: body.basicInfo,
-      location: body.location,
-      deities: body.deities,
-      categories: body.categories,
-      updatedAt: new Date().toISOString(),
+      title: body.title,
+      category: body.category,
+      text: body.text,
+      updateddt: new Date().toISOString(),
     };
     
     const result = await db.collection('temples').updateOne(

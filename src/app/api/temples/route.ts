@@ -6,18 +6,6 @@ dotenv.config({ path: '.env.local' });
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB_NAME || 'hinduconnect';
 
-function slugify(str: string) {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 40);
-}
-
-function randomString(len = 6) {
-  return Math.random().toString(36).substring(2, 2 + len);
-}
-
 export async function GET(req: NextRequest) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
@@ -31,8 +19,6 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '20', 10);
     const skip = (page - 1) * limit;
     const search = url.searchParams.get('search')?.trim();
-    const state = url.searchParams.get('state')?.trim();
-    const deity = url.searchParams.get('deity')?.trim();
     const category = url.searchParams.get('category')?.trim();
     
     let filter: Record<string, unknown> = {};
@@ -43,29 +29,15 @@ export async function GET(req: NextRequest) {
     if (search) {
       conditions.push({
         $or: [
-          { 'basicInfo.name': { $regex: search, $options: 'i' } },
-          { 'basicInfo.alternateName': { $regex: search, $options: 'i' } },
-          { 'location.address.city': { $regex: search, $options: 'i' } },
-          { 'location.address.district': { $regex: search, $options: 'i' } },
+          { title: { $regex: search, $options: 'i' } },
+          { text: { $regex: search, $options: 'i' } },
+          { category: { $regex: search, $options: 'i' } }
         ],
       });
     }
     
-    if (state) {
-      conditions.push({ 'location.address.state': { $regex: state, $options: 'i' } });
-    }
-    
-    if (deity) {
-      conditions.push({
-        $or: [
-          { 'basicInfo.primaryDeity': { $regex: deity, $options: 'i' } },
-          { 'deities.name': { $regex: deity, $options: 'i' } }
-        ]
-      });
-    }
-    
     if (category) {
-      conditions.push({ 'categories.value': { $regex: category, $options: 'i' } });
+      conditions.push({ category: { $regex: category, $options: 'i' } });
     }
 
     if (conditions.length > 0) {
@@ -92,11 +64,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     await client.connect();
     const db = client.db(dbName);
-    let templeId = body.templeId;
-    if (!templeId && body.basicInfo?.name) {
-      templeId = slugify(body.basicInfo.name) + '_' + randomString(5);
+    
+    if (!body.title || !body.category || !body.text) {
+      return NextResponse.json({ message: 'Title, category, and text are required' }, { status: 400 });
     }
-    const doc = { ...body, templeId, createdAt: new Date(), updatedAt: new Date() };
+    
+    const doc = {
+      title: body.title,
+      category: body.category,
+      text: body.text,
+      createddt: new Date().toISOString(),
+      updateddt: new Date().toISOString()
+    };
+    
     const result = await db.collection('temples').insertOne(doc);
     const inserted = await db.collection('temples').findOne({ _id: result.insertedId });
     return NextResponse.json({ item: inserted }, { status: 201 });

@@ -4,56 +4,11 @@ import { useRouter } from 'next/navigation';
 
 interface Temple {
   _id: string;
-  templeId: string;
-  basicInfo: {
-    name: string;
-    alternateName?: string;
-    type?: string;
-    primaryDeity?: string;
-  };
-  location: {
-    address: {
-      state: string;
-      country: string;
-      city?: string;
-      district?: string;
-      area?: string;
-      street?: string;
-    };
-    coordinates?: {
-      latitude?: number;
-      longitude?: number;
-    };
-  };
-  deities?: Array<{
-    name: string;
-    type: string;
-    description?: string;
-  }>;
-  categories?: Array<{
-    type: string;
-    value: string;
-    priority?: number;
-  }>;
-  architecture?: Record<string, unknown>;
-  attractions?: {
-    nearbyTemples?: string[];
-    touristSpots?: string[];
-  };
-  facilities?: Record<string, unknown>;
-  history?: Record<string, unknown>;
-  worship?: Record<string, unknown>;
-  travel?: Record<string, unknown>;
-  media?: Record<string, unknown>;
-  metadata?: {
-    sourceFile?: string;
-    extractedFrom?: string;
-  };
-  version?: {
-    current?: number;
-    createdAt?: string;
-    updatedAt?: string;
-  };
+  category: string;
+  title: string;
+  text: string;
+  createddt: string;
+  updateddt: string;
 }
 
 export default function AdminTemplesPage() {
@@ -66,8 +21,6 @@ export default function AdminTemplesPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [jumpPage, setJumpPage] = useState("");
-  const [filterState, setFilterState] = useState("");
-  const [filterDeity, setFilterDeity] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
 
   const router = useRouter();
@@ -90,8 +43,6 @@ export default function AdminTemplesPage() {
       limit: String(limit),
     });
     if (search) params.append('search', search);
-    if (filterState) params.append('state', filterState);
-    if (filterDeity) params.append('deity', filterDeity);
     if (filterCategory) params.append('category', filterCategory);
     
     fetch(`/api/temples?${params.toString()}`)
@@ -110,7 +61,7 @@ export default function AdminTemplesPage() {
   useEffect(() => {
     fetchTemples();
     // eslint-disable-next-line
-  }, [page, limit, search, filterState, filterDeity, filterCategory]);
+  }, [page, limit, search, filterCategory]);
 
   const totalPages = Math.ceil(total / limit);
 
@@ -119,7 +70,7 @@ export default function AdminTemplesPage() {
   };
 
   const handleDelete = async (temple: Temple) => {
-    if (!window.confirm(`Are you sure you want to delete temple: ${temple.basicInfo?.name}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete temple: ${temple.title}?`)) return;
     setDeletingId(temple._id);
     try {
       const res = await fetch(`/api/temples/${temple._id}`, { method: 'DELETE' });
@@ -135,33 +86,70 @@ export default function AdminTemplesPage() {
     }
   };
 
-  const getDeityNames = (deities?: Array<{name: string; type: string}>) => {
-    if (!deities || deities.length === 0) return 'Not specified';
-    return deities.map(d => d.name).join(', ');
+  const getCategoryDisplayName = (category: string) => {
+    return category.replace(/_/g, ' ').replace('Temples', '');
   };
 
-  const getCategoryNames = (categories?: Array<{type: string; value: string}>) => {
-    if (!categories || categories.length === 0) return 'General';
-    return categories.map(c => c.value.replace(/_/g, ' ')).join(', ');
+  const getTextPreview = (text: string) => {
+    // Remove markdown formatting and get first 100 characters
+    const plainText = text.replace(/\*\*/g, '').replace(/#{1,6}\s/g, '').replace(/\n/g, ' ');
+    return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
   };
 
-  const getLocationString = (temple: Temple) => {
-    const address = temple.location?.address;
-    if (!address) return 'Location not specified';
-    
-    const parts = [];
-    if (address.city && address.city !== 'Unknown') parts.push(address.city);
-    if (address.district) parts.push(address.district);
-    if (address.state) parts.push(address.state);
-    if (address.country) parts.push(address.country);
-    
-    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
   };
+
+  // Category options for filter
+  const categoryOptions = [
+    "108_Divya_Desham_Temples",
+    "108_Shiva_Temples_Kerala", 
+    "12_Jyotirlingam_Temples",
+    "51_Shakti_Peetham_Temples",
+    "Andaman_Nicobar_Temples",
+    "Andhra_Pradesh_Temples",
+    "Arunachal_Pradesh_Temples",
+    "Assam_Temples",
+    "Bihar_Temples",
+    "Chandigarh_Temples",
+    "Chattisgarh_Temples",
+    "Delhi_Temples",
+    "Goa_Temples",
+    "Gujarat_Temples",
+    "Haryana_Temples",
+    "Himachal_Pradesh_Temples",
+    "International_Temples",
+    "Jammu_Kashmir_Temples",
+    "Jharkhand_Temples",
+    "Karnataka_Temples",
+    "Kerala_Temples",
+    "Madhya_Pradesh_Temples",
+    "Maharashtra_Temples",
+    "Manipur_Temples",
+    "Meghalaya_Temples",
+    "Nagaland_Temples",
+    "Nepal_Temples",
+    "Odisha_Temples",
+    "Puducherry_Temples",
+    "Punjab_Temples",
+    "Rajasthan_Temples",
+    "Sikkim_Temples",
+    "Tamilnadu_Temples",
+    "Telangana_Temples",
+    "Tripura_Temples",
+    "Uttarakhand_Temples",
+    "Uttar_Pradesh_Temples",
+    "West_Bengal_Temples"
+  ];
 
   return (
     <div className="p-4 sm:p-8 bg-[#fff7ed] min-h-screen">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-        <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Manage Temples</h1>
+        <div>
+          <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Manage Temples</h1>
+          <p className="text-gray-600 mt-1">Total: {total} temples in database</p>
+        </div>
         <button
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-black font-bold px-5 py-2 rounded-lg shadow transition text-base focus:outline-none focus:ring-2 focus:ring-orange-400"
           onClick={() => router.push('/admin-temples/add')}
@@ -172,51 +160,16 @@ export default function AdminTemplesPage() {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Search</label>
             <input
               type="text"
-              placeholder="Search by name..."
+              placeholder="Search by title or content..."
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               className="w-full border px-3 py-2 rounded"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">State</label>
-            <select
-              value={filterState}
-              onChange={e => setFilterState(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            >
-              <option value="">All States</option>
-              <option value="Tamilnadu">Tamil Nadu</option>
-              <option value="Karnataka">Karnataka</option>
-              <option value="Telangana">Telangana</option>
-              <option value="Kerala">Kerala</option>
-              <option value="Andhra Pradesh">Andhra Pradesh</option>
-              <option value="Odisha">Odisha</option>
-              <option value="Maharashtra">Maharashtra</option>
-              <option value="Uttar Pradesh">Uttar Pradesh</option>
-              <option value="108 Divya Desham">108 Divya Desham</option>
-              <option value="Rajasthan">Rajasthan</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Primary Deity</label>
-            <select
-              value={filterDeity}
-              onChange={e => setFilterDeity(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            >
-              <option value="">All Deities</option>
-              <option value="Vishnu">Vishnu</option>
-              <option value="Shiva">Shiva</option>
-              <option value="Devi">Devi</option>
-              <option value="Ganesha">Ganesha</option>
-              <option value="Hanuman">Hanuman</option>
-            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Category</label>
@@ -226,8 +179,11 @@ export default function AdminTemplesPage() {
               className="w-full border px-3 py-2 rounded"
             >
               <option value="">All Categories</option>
-              <option value="108_divya_desham">108 Divya Desham</option>
-              <option value="general">General</option>
+              {categoryOptions.map(category => (
+                <option key={category} value={category}>
+                  {getCategoryDisplayName(category)}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -245,8 +201,6 @@ export default function AdminTemplesPage() {
             onClick={() => {
               setSearch("");
               setSearchInput("");
-              setFilterState("");
-              setFilterDeity("");
               setFilterCategory("");
               setPage(1);
             }}
@@ -284,9 +238,9 @@ export default function AdminTemplesPage() {
           <thead className="sticky top-0 bg-orange-100 z-10 rounded-t-2xl">
             <tr>
               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tl-2xl">Temple Info</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Location</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Deities</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Categories</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Category</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Content Preview</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Timestamps</th>
               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tr-2xl">Actions</th>
             </tr>
           </thead>
@@ -302,41 +256,34 @@ export default function AdminTemplesPage() {
                 >
                   <td className="border-b px-4 py-3">
                     <div className="space-y-1">
-                      <div className="font-semibold text-gray-900">{temple.basicInfo?.name}</div>
-                      {temple.basicInfo?.alternateName && (
-                        <div className="text-sm text-gray-600">({temple.basicInfo.alternateName})</div>
-                      )}
-                      <div className="text-xs text-gray-500 font-mono" title={temple.templeId}>
-                        ID: {temple.templeId?.slice(0, 12)}...
+                      <div className="font-semibold text-gray-900">{temple.title}</div>
+                      <div className="text-xs text-gray-500 font-mono" title={temple._id}>
+                        ID: {temple._id.slice(-12)}...
                       </div>
                     </div>
                   </td>
                   <td className="border-b px-4 py-3">
                     <div className="text-sm">
-                      <div className="font-medium">{getLocationString(temple)}</div>
-                      {temple.location?.coordinates && (
-                        <div className="text-xs text-gray-500">
-                          📍 {temple.location.coordinates.latitude?.toFixed(4)}, {temple.location.coordinates.longitude?.toFixed(4)}
-                        </div>
-                      )}
+                      <div className="font-medium text-blue-600">{getCategoryDisplayName(temple.category)}</div>
+                      <div className="text-xs text-gray-500">{temple.category}</div>
                     </div>
                   </td>
                   <td className="border-b px-4 py-3">
                     <div className="text-sm">
-                      <div className="font-medium">{getDeityNames(temple.deities)}</div>
-                      {temple.basicInfo?.primaryDeity && (
-                        <div className="text-xs text-gray-500">Primary: {temple.basicInfo.primaryDeity}</div>
-                      )}
+                      <div className="text-gray-700">{getTextPreview(temple.text)}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        📄 {temple.text.length.toLocaleString()} characters
+                      </div>
                     </div>
                   </td>
                   <td className="border-b px-4 py-3">
-                    <div className="text-sm">
-                      <div className="font-medium">{getCategoryNames(temple.categories)}</div>
-                      {temple.categories && temple.categories.length > 0 && (
-                        <div className="text-xs text-gray-500">
-                          {temple.categories.map(c => c.type.replace(/_/g, ' ')).join(', ')}
-                        </div>
-                      )}
+                    <div className="text-xs space-y-1">
+                      <div className="text-gray-600">
+                        📅 Created: {formatDate(temple.createddt)}
+                      </div>
+                      <div className="text-gray-600">
+                        🔄 Updated: {formatDate(temple.updateddt)}
+                      </div>
                     </div>
                   </td>
                   <td className="border-b px-4 py-3 text-center whitespace-nowrap">

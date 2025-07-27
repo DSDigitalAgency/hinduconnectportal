@@ -6,20 +6,9 @@ export default function AddTemplePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    name: "",
-    alternateName: "",
-    primaryDeity: "",
-    state: "",
-    country: "India",
-    city: "",
-    district: "",
-    area: "",
-    street: "",
-    latitude: "",
-    longitude: "",
-    categoryType: "sacred_circuit",
-    categoryValue: "general",
-    categoryPriority: "1"
+    title: "",
+    category: "Andhra_Pradesh_Temples",
+    text: ""
   });
 
   const router = useRouter();
@@ -40,59 +29,38 @@ export default function AddTemplePage() {
     setLoading(true);
     setError("");
     
+    if (!formData.title.trim() || !formData.category.trim() || !formData.text.trim()) {
+      setError("All fields are required");
+      setLoading(false);
+      return;
+    }
+    
     try {
       const templeData = {
-        basicInfo: { 
-          name: formData.name,
-          alternateName: formData.alternateName || undefined,
-          type: "temple",
-          primaryDeity: formData.primaryDeity || undefined
-        },
-        location: { 
-          address: { 
-            state: formData.state, 
-            country: formData.country,
-            city: formData.city || undefined,
-            district: formData.district || undefined,
-            area: formData.area || undefined,
-            street: formData.street || undefined
-          },
-          coordinates: (formData.latitude && formData.longitude) ? {
-            latitude: parseFloat(formData.latitude),
-            longitude: parseFloat(formData.longitude)
-          } : undefined
-        },
-        deities: formData.primaryDeity ? [{ name: formData.primaryDeity, type: "primary" }] : undefined,
-        categories: [{
-          type: formData.categoryType,
-          value: formData.categoryValue,
-          priority: parseInt(formData.categoryPriority)
-        }],
-        architecture: {},
-        attractions: { nearbyTemples: [], touristSpots: [] },
-        facilities: {},
-        history: {},
-        worship: {},
-        travel: {}
+        title: formData.title.trim(),
+        category: formData.category,
+        text: formData.text.trim()
       };
 
-      const res = await fetch("/api/temples", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/temples', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(templeData),
       });
-      
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || 'Failed to add temple');
-        setLoading(false);
-        return;
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create temple');
       }
-      
-      setLoading(false);
+
+      const result = await response.json();
+      alert('Temple created successfully!');
       router.push('/admin-temples');
     } catch (err) {
-      setError("Network error");
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
       setLoading(false);
     }
   };
@@ -101,226 +69,154 @@ export default function AddTemplePage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Category options
+  const categoryOptions = [
+    "108_Divya_Desham_Temples",
+    "108_Shiva_Temples_Kerala", 
+    "12_Jyotirlingam_Temples",
+    "51_Shakti_Peetham_Temples",
+    "Andaman_Nicobar_Temples",
+    "Andhra_Pradesh_Temples",
+    "Arunachal_Pradesh_Temples",
+    "Assam_Temples",
+    "Bihar_Temples",
+    "Chandigarh_Temples",
+    "Chattisgarh_Temples",
+    "Delhi_Temples",
+    "Goa_Temples",
+    "Gujarat_Temples",
+    "Haryana_Temples",
+    "Himachal_Pradesh_Temples",
+    "International_Temples",
+    "Jammu_Kashmir_Temples",
+    "Jharkhand_Temples",
+    "Karnataka_Temples",
+    "Kerala_Temples",
+    "Madhya_Pradesh_Temples",
+    "Maharashtra_Temples",
+    "Manipur_Temples",
+    "Meghalaya_Temples",
+    "Nagaland_Temples",
+    "Nepal_Temples",
+    "Odisha_Temples",
+    "Puducherry_Temples",
+    "Punjab_Temples",
+    "Rajasthan_Temples",
+    "Sikkim_Temples",
+    "Tamilnadu_Temples",
+    "Telangana_Temples",
+    "Tripura_Temples",
+    "Uttarakhand_Temples",
+    "Uttar_Pradesh_Temples",
+    "West_Bengal_Temples"
+  ];
+
+  const getCategoryDisplayName = (category: string) => {
+    return category.replace(/_/g, ' ').replace('Temples', '');
+  };
+
   return (
     <div className="p-4 sm:p-8 bg-[#fff7ed] min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Add New Temple</h1>
+          <div>
+            <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Add New Temple</h1>
+            <p className="text-gray-600 mt-1">Create a new temple entry</p>
+          </div>
           <button
             onClick={() => router.push('/admin-temples')}
-            className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition"
+            className="bg-gray-500 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg transition"
           >
             ← Back to Temples
           </button>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-8">
-          {/* Basic Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Basic Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Temple Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Alternate Name</label>
-                <input
-                  type="text"
-                  value={formData.alternateName}
-                  onChange={(e) => handleInputChange('alternateName', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Primary Deity</label>
-                <input
-                  type="text"
-                  value={formData.primaryDeity}
-                  onChange={(e) => handleInputChange('primaryDeity', e.target.value)}
-                  placeholder="e.g., Vishnu, Shiva, Devi"
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
             </div>
-          </div>
+          )}
 
-          {/* Location Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Location Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">State *</label>
-                <select
-                  value={formData.state}
-                  onChange={(e) => handleInputChange('state', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                >
-                  <option value="">Select State</option>
-                  <option value="Tamilnadu">Tamil Nadu</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Telangana">Telangana</option>
-                  <option value="Kerala">Kerala</option>
-                  <option value="Andhra Pradesh">Andhra Pradesh</option>
-                  <option value="Odisha">Odisha</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  <option value="108 Divya Desham">108 Divya Desham</option>
-                  <option value="Rajasthan">Rajasthan</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Country</label>
-                <input
-                  type="text"
-                  value={formData.country}
-                  onChange={(e) => handleInputChange('country', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">City</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">District</label>
-                <input
-                  type="text"
-                  value={formData.district}
-                  onChange={(e) => handleInputChange('district', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Area</label>
-                <input
-                  type="text"
-                  value={formData.area}
-                  onChange={(e) => handleInputChange('area', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Street</label>
-                <input
-                  type="text"
-                  value={formData.street}
-                  onChange={(e) => handleInputChange('street', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Temple Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                placeholder="Enter temple title..."
+                required
+              />
             </div>
-          </div>
 
-          {/* Coordinates */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Coordinates (Optional)</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Latitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.latitude}
-                  onChange={(e) => handleInputChange('latitude', e.target.value)}
-                  placeholder="e.g., 12.9716"
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Longitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.longitude}
-                  onChange={(e) => handleInputChange('longitude', e.target.value)}
-                  placeholder="e.g., 77.5946"
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                required
+              >
+                {categoryOptions.map(category => (
+                  <option key={category} value={category}>
+                    {getCategoryDisplayName(category)}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* Category Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Category Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Category Type</label>
-                <select
-                  value={formData.categoryType}
-                  onChange={(e) => handleInputChange('categoryType', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="sacred_circuit">Sacred Circuit</option>
-                  <option value="pilgrimage">Pilgrimage</option>
-                  <option value="heritage">Heritage</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Category Value</label>
-                <select
-                  value={formData.categoryValue}
-                  onChange={(e) => handleInputChange('categoryValue', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="general">General</option>
-                  <option value="108_divya_desham">108 Divya Desham</option>
-                  <option value="jyotirlinga">Jyotirlinga</option>
-                  <option value="shakti_peeth">Shakti Peeth</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Priority</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.categoryPriority}
-                  onChange={(e) => handleInputChange('categoryPriority', e.target.value)}
-                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
+            {/* Content */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Temple Content (Markdown) *
+              </label>
+              <textarea
+                value={formData.text}
+                onChange={(e) => handleInputChange('text', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                rows={20}
+                placeholder="Enter temple content in markdown format..."
+                required
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                You can use markdown formatting like **bold**, *italic*, # headings, etc.
+              </p>
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <div className="flex gap-4 justify-end">
-            <button
-              type="button"
-              onClick={() => router.push('/admin-temples')}
-              className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold rounded transition disabled:opacity-50"
-            >
-              {loading ? "Adding..." : "Add Temple"}
-            </button>
-          </div>
-        </form>
+            {/* Submit Button */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-black font-bold py-3 px-6 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <span className="animate-spin mr-2">🌀</span>
+                    Creating...
+                  </span>
+                ) : (
+                  'Create Temple'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/admin-temples')}
+                className="px-6 py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

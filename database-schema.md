@@ -1,5 +1,174 @@
 # HinduConnect Database Schema
 
+## Collection: `temples`
+
+### Document Structure
+
+Each temple document will have the following structure:
+
+```json
+{
+  "_id": "ObjectId",
+  "category": "string",
+  "title": "string",
+  "text": "string",
+  "createddt": "string (ISO date)",
+  "updateddt": "string (ISO date)"
+}
+```
+
+### Field Descriptions
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `_id` | ObjectId | MongoDB auto-generated unique identifier | `686d3db5f85d5e5ed6ab0f2f` |
+| `category` | String | Category/folder name from Temples directory | `"Andhra_Pradesh_Temples"`, `"Tamilnadu_Temples"` |
+| `title` | String | Title extracted from filename (without .md extension) | `"1000 Pillar Temple Addanki Prakasam"` |
+| `text` | String | Full markdown content of the temple file | `"**1000 Pillar Temple – Addanki, Prakasam District, Andhra Pradesh**\n\n___\n\n**1. Introduction**..."` |
+| `createddt` | String | Creation timestamp (ISO format) | `"2025-01-26T19:25:12.766Z"` |
+| `updateddt` | String | Last update timestamp (ISO format) | `"2025-01-26T19:25:12.766Z"` |
+
+### Categories
+
+The temples are organized into the following categories based on the Temples folder structure:
+- **108_Divya_Desham_Temples**: 133 temples
+- **108_Shiva_Temples_Kerala**: 106 temples  
+- **12_Jyotirlingam_Temples**: 9 temples
+- **51_Shakti_Peetham_Temples**: 58 temples
+- **Andaman_Nicobar_Temples**: 1 temple
+- **Andhra_Pradesh_Temples**: 352 temples
+- **Arunachal_Pradesh_Temples**: 3 temples
+- **Assam_Temples**: 42 temples
+- **Bihar_Temples**: 114 temples
+- **Chandigarh_Temples**: 2 temples
+- **Chattisgarh_Temples**: 30 temples
+- **Delhi_Temples**: 22 temples
+- **Goa_Temples**: 27 temples
+- **Gujarat_Temples**: 118 temples
+- **Haryana_Temples**: 40 temples
+- **Himachal_Pradesh_Temples**: 31 temples
+- **International_Temples**: 71 temples
+- **Jammu_Kashmir_Temples**: 37 temples
+- **Jharkhand_Temples**: 23 temples
+- **Karnataka_Temples**: 479 temples
+- **Kerala_Temples**: 370 temples
+- **Madhya_Pradesh_Temples**: 87 temples
+- **Maharashtra_Temples**: 212 temples
+- **Manipur_Temples**: 3 temples
+- **Meghalaya_Temples**: 1 temple
+- **Nagaland_Temples**: 1 temple
+- **Nepal_Temples**: 7 temples
+- **Odisha_Temples**: 291 temples
+- **Puducherry_Temples**: 8 temples
+- **Punjab_Temples**: 15 temples
+- **Rajasthan_Temples**: 119 temples
+- **Sikkim_Temples**: 3 temples
+- **Tamilnadu_Temples**: 1362 temples
+- **Telangana_Temples**: 406 temples
+- **Tripura_Temples**: 3 temples
+- **Uttar_Pradesh_Temples**: 164 temples
+- **Uttarakhand_Temples**: 59 temples
+- **West_Bengal_Temples**: 106 temples
+
+### Example Document
+
+```json
+{
+  "_id": ObjectId("686d3db5f85d5e5ed6ab0f2f"),
+  "category": "Andhra_Pradesh_Temples",
+  "title": "1000 Pillar Temple Addanki Prakasam",
+  "text": "**1000 Pillar Temple – Addanki, Prakasam District, Andhra Pradesh**\n\n___\n\n**1. Introduction**\nThe 1000 Pillar Temple of Addanki, located in Prakasam district of Andhra Pradesh, is a historical and architectural marvel...",
+  "createddt": "2025-01-26T19:25:12.766Z",
+  "updateddt": "2025-01-26T19:25:12.766Z"
+}
+```
+
+### Database Operations
+
+#### Insert New Temple
+```javascript
+db.temples.insertOne({
+  category: "Andhra_Pradesh_Temples",
+  title: "Temple Name",
+  text: "Full temple content...",
+  createddt: new Date().toISOString(),
+  updateddt: new Date().toISOString()
+})
+```
+
+#### Find Temples by Category
+```javascript
+db.temples.find({ category: "Andhra_Pradesh_Temples" })
+```
+
+#### Find Temples by Title (Partial Match)
+```javascript
+db.temples.find({ title: { $regex: "Temple", $options: "i" } })
+```
+
+#### Search in Title and Text
+```javascript
+db.temples.find({
+  $or: [
+    { title: { $regex: "Shiva", $options: "i" } },
+    { text: { $regex: "Shiva", $options: "i" } }
+  ]
+})
+```
+
+#### Update Temple
+```javascript
+db.temples.updateOne(
+  { _id: ObjectId("...") },
+  { 
+    $set: { 
+      title: "Updated Title",
+      text: "Updated content...",
+      updateddt: new Date().toISOString()
+    }
+  }
+)
+```
+
+#### Delete Temple
+```javascript
+db.temples.deleteOne({ _id: ObjectId("...") })
+```
+
+### Indexes (Recommended)
+
+```javascript
+// Index on category for faster queries
+db.temples.createIndex({ category: 1 })
+
+// Index on title for search functionality
+db.temples.createIndex({ title: 1 })
+
+// Text index for full-text search
+db.temples.createIndex({ title: "text", text: "text" })
+
+// Index on creation date for sorting
+db.temples.createIndex({ createddt: -1 })
+```
+
+### Expected Data Volume
+
+Based on the Temples folder structure:
+- **Total Files**: 5,000+ temple markdown files
+- **Categories**: 35+ categories covering all Indian states and special temple categories
+- **Content**: Rich markdown content with detailed temple information
+
+### Benefits of This Structure
+
+1. **Simple & Clean**: Minimal fields, easy to understand
+2. **Organized**: Clear categorization by state/region
+3. **Searchable**: Full-text search across titles and content
+4. **Scalable**: Easy to add more temples or categories
+5. **Performance**: Lightweight documents, fast queries
+6. **Compatible**: Works with existing frontend patterns
+
+---
+
 ## Collection: `stotras`
 
 ### Document Structure
