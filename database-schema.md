@@ -1,5 +1,155 @@
 # HinduConnect Database Schema
 
+## Collection: `videos`
+
+### Document Structure
+
+Each video document will have the following structure:
+
+```json
+{
+  "_id": "ObjectId",
+  "id": "string",
+  "videourl": "string",
+  "title": "string",
+  "category": "string",
+  "createddt": "string (ISO date)",
+  "updateddt": "string (ISO date)"
+}
+```
+
+### Field Descriptions
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `_id` | ObjectId | MongoDB auto-generated unique identifier | `688b931a8189531120c0975c` |
+| `id` | String | Auto-generated unique video identifier | `"video_mdrkzq24_u5ph0x"` |
+| `videourl` | String | YouTube or other video platform URL | `"https://youtu.be/OnTcMuv2Tsk"` |
+| `title` | String | Title of the video | `"Bhagavad Gita Chapter 1 - Arjuna Vishada Yoga"` |
+| `category` | String | Category of the video content | `"Bhajans"`, `"Discourses"`, `"Temple Tours"` |
+| `createddt` | String | Creation timestamp (ISO format) | `"2025-07-31T16:00:26.285Z"` |
+| `updateddt` | String | Last update timestamp (ISO format) | `"2025-07-31T16:00:26.285Z"` |
+
+### Categories
+
+The videos are organized into the following categories:
+- **General**: General videos
+- **Antyesti**: Funeral rites and ceremonies
+- **Ayurveda**: Traditional Indian medicine and wellness
+- **Festivals**: Festival celebrations and events
+- **Knowledge**: Educational and informative content
+- **Nature**: Natural world and environmental content
+- **Shastras**: Sacred texts and scriptures
+- **Worship**: Religious worship and rituals
+- **Yoga**: Yoga and physical practices
+- **Music**: Musical content and performances
+- **Movies**: Film and entertainment content
+- **Pravachanas**: Spiritual discourses and lectures
+
+### Example Document
+
+```json
+{
+  "_id": ObjectId("688b931a8189531120c0975c"),
+  "id": "video_mdrkzq24_u5ph0x",
+  "videourl": "https://youtu.be/OnTcMuv2Tsk",
+  "title": "Bhagavad Gita Chapter 1 - Arjuna Vishada Yoga",
+  "category": "Shastras",
+  "createddt": "2025-07-31T16:00:26.285Z",
+  "updateddt": "2025-07-31T16:00:26.285Z"
+}
+```
+
+### Database Operations
+
+#### Insert New Video
+```javascript
+db.videos.insertOne({
+  id: "video_timestamp_random",
+  videourl: "https://youtu.be/example",
+  title: "Video Title",
+  category: "Shastras",
+  createddt: new Date().toISOString(),
+  updateddt: new Date().toISOString()
+})
+```
+
+#### Find Videos by Category
+```javascript
+db.videos.find({ category: "Shastras" })
+```
+
+#### Find Videos by Title (Partial Match)
+```javascript
+db.videos.find({ title: { $regex: "Bhagavad", $options: "i" } })
+```
+
+#### Search in Title and Category
+```javascript
+db.videos.find({
+  $or: [
+    { title: { $regex: "yoga", $options: "i" } },
+    { category: { $regex: "yoga", $options: "i" } }
+  ]
+})
+```
+
+#### Update Video
+```javascript
+db.videos.updateOne(
+  { _id: ObjectId("...") },
+  { 
+    $set: { 
+      title: "Updated Title",
+      category: "Worship",
+      updateddt: new Date().toISOString()
+    }
+  }
+)
+```
+
+#### Delete Video
+```javascript
+db.videos.deleteOne({ _id: ObjectId("...") })
+```
+
+### Indexes (Recommended)
+
+```javascript
+// Index on id for unique identification
+db.videos.createIndex({ id: 1 }, { unique: true })
+
+// Index on category for filtering
+db.videos.createIndex({ category: 1 })
+
+// Index on title for search functionality
+db.videos.createIndex({ title: 1 })
+
+// Text index for full-text search
+db.videos.createIndex({ title: "text", category: "text" })
+
+// Index on creation date for sorting
+db.videos.createIndex({ createddt: -1 })
+```
+
+### Expected Data Volume
+
+Based on typical video content:
+- **Total Videos**: 100+ videos across various categories
+- **Categories**: 12 main categories covering different aspects of Hindu culture and spirituality
+- **Content**: YouTube and other video platform URLs
+
+### Benefits of This Structure
+
+1. **Simple & Clean**: Minimal fields, easy to understand
+2. **Organized**: Clear categorization for easy browsing
+3. **Searchable**: Full-text search across titles and categories
+4. **Scalable**: Easy to add more videos or categories
+5. **Performance**: Lightweight documents, fast queries
+6. **Compatible**: Works with existing frontend patterns
+
+---
+
 ## Collection: `temples`
 
 ### Document Structure

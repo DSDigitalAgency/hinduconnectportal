@@ -6,11 +6,16 @@ interface Video {
   _id: string;
   id: string;
   videourl: string;
+  title: string;
+  category: string;
   createddt: string;
+  updateddt?: string;
 }
 
 function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const [videourl, setVideourl] = useState("");
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("General");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,7 +27,7 @@ function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
       const res = await fetch("/api/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videourl }),
+        body: JSON.stringify({ videourl, title, category }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -31,6 +36,8 @@ function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
         return;
       }
       setVideourl("");
+      setTitle("");
+      setCategory("General");
       setLoading(false);
       onSuccess();
       onClose();
@@ -54,6 +61,39 @@ function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
         </div>
         {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Video Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded"
+              required
+              placeholder="Enter video title..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Category *</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded"
+              required
+            >
+              <option value="General">General</option>
+              <option value="Antyesti">Antyesti</option>
+              <option value="Ayurveda">Ayurveda</option>
+              <option value="Festivals">Festivals</option>
+              <option value="Knowledge">Knowledge</option>
+              <option value="Nature">Nature</option>
+              <option value="Shastras">Shastras</option>
+              <option value="Worship">Worship</option>
+              <option value="Yoga">Yoga</option>
+              <option value="Music">Music</option>
+              <option value="Movies">Movies</option>
+              <option value="Pravachanas">Pravachanas</option>
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Video URL *</label>
             <input
@@ -83,6 +123,9 @@ export default function AdminVideosPage() {
   const [limit] = useState(20);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const router = useRouter();
 
   // Session check
@@ -99,97 +142,234 @@ export default function AdminVideosPage() {
   const fetchVideos = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-      const res = await fetch(`/api/videos?${params}`);
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
+      if (search) params.append('search', search);
+      if (filterCategory) params.append('category', filterCategory);
+      
+      const res = await fetch(`/api/videos?${params.toString()}`);
       const data = await res.json();
       setVideos(data.items || []);
       setTotal(data.total || 0);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        // handle error
-      }
+    } catch (error) {
+      console.error('Error fetching videos:', error);
     } finally {
       setLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, search, filterCategory]);
 
-  useEffect(() => { fetchVideos(); }, [page, fetchVideos]);
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
 
   const handleDelete = async (videoId: string) => {
-    if (!confirm("Are you sure you want to delete this video?")) return;
-    
+    if (!window.confirm('Are you sure you want to delete this video?')) return;
     setDeleteLoading(videoId);
     try {
-      const res = await fetch(`/api/videos/${videoId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/videos/${videoId}`, { method: 'DELETE' });
       if (!res.ok) {
-        alert("Failed to delete video");
-        return;
+        alert('Failed to delete video');
+      } else {
+        fetchVideos();
       }
-      fetchVideos();
-    } catch (err) {
-      alert("Error deleting video");
+    } catch (error) {
+      alert('Network error');
     } finally {
       setDeleteLoading(null);
     }
   };
 
-  const totalPages = Math.ceil(total / limit);
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const getVideoId = (url: string) => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+    return match ? match[1] : null;
+  };
+
+  const categoryOptions = [
+    "General", "Antyesti", "Ayurveda", "Festivals", "Knowledge", 
+    "Nature", "Shastras", "Worship", "Yoga", "Music", 
+    "Movies", "Pravachanas"
+  ];
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manage Videos</h1>
-        <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Add New Video</button>
+    <div className="p-4 sm:p-8 bg-[#fff7ed] min-h-screen">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Manage Videos</h1>
+          <p className="text-gray-600 mt-1">Total: {total} videos in database</p>
+        </div>
+        <button
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-black font-bold px-5 py-2 rounded-lg shadow transition text-base focus:outline-none focus:ring-2 focus:ring-orange-400"
+          onClick={() => setShowAddModal(true)}
+        >
+          <span role="img" aria-label="add">➕</span> Add New Video
+        </button>
       </div>
-      {loading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video URL</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {videos.map((video) => (
-                <tr key={video._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-700 underline max-w-[320px] overflow-hidden text-ellipsis truncate">
-                    <a href={video.videourl} target="_blank" rel="noopener noreferrer">{video.videourl}</a>
+
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search by title or category..."
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            >
+              <option value="">All Categories</option>
+              {categoryOptions.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setSearch(searchInput);
+              setPage(1);
+            }}
+            className="bg-orange-500 hover:bg-orange-600 text-black font-bold px-4 py-2 rounded transition"
+          >
+            Search
+          </button>
+          <button
+            onClick={() => {
+              setSearch("");
+              setSearchInput("");
+              setFilterCategory("");
+              setPage(1);
+            }}
+            className="bg-gray-200 hover:bg-gray-300 text-black font-bold px-3 py-2 rounded transition"
+          >
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="overflow-x-auto rounded-2xl shadow border bg-white">
+        <table className="min-w-full text-sm">
+          <thead className="sticky top-0 bg-orange-100 z-10 rounded-t-2xl">
+            <tr>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tl-2xl">Video Info</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Category</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">URL</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Timestamps</th>
+              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tr-2xl">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="text-center py-12"><span className="animate-spin inline-block mr-2">🌀</span>Loading...</td></tr>
+            ) : videos.length === 0 ? (
+              <tr><td colSpan={5} className="text-center py-12">No videos found.</td></tr>
+            ) : (
+              videos.map((video, idx) => (
+                <tr key={video._id} className={
+                  `transition ${idx % 2 === 0 ? 'bg-orange-50/50' : 'bg-white'} hover:bg-orange-100`}
+                >
+                  <td className="border-b px-4 py-3">
+                    <div className="space-y-1">
+                      <div className="font-semibold text-gray-900">{video.title}</div>
+                      <div className="text-xs text-gray-500 font-mono" title={video.id}>
+                        ID: {video.id}
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(video.createddt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      onClick={() => handleDelete(video._id)} 
-                      disabled={deleteLoading === video._id} 
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                    >
-                      {deleteLoading === video._id ? "Deleting..." : "Delete"}
-                    </button>
+                  <td className="border-b px-4 py-3">
+                    <div className="text-sm">
+                      <div className="font-medium text-blue-600">{video.category}</div>
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3">
+                    <div className="text-sm">
+                      <a 
+                        href={video.videourl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {video.videourl}
+                      </a>
+                      {getVideoId(video.videourl) && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          🎥 Video ID: {getVideoId(video.videourl)}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3">
+                    <div className="text-xs space-y-1">
+                      <div className="text-gray-600">
+                        📅 Created: {formatDate(video.createddt)}
+                      </div>
+                      {video.updateddt && (
+                        <div className="text-gray-600">
+                          🔄 Updated: {formatDate(video.updateddt)}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="border-b px-4 py-3 text-center whitespace-nowrap">
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded bg-red-400 hover:bg-red-600 text-black font-semibold text-xs transition shadow-sm focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
+                        title="Delete"
+                        onClick={() => handleDelete(video._id)}
+                        disabled={deleteLoading === video._id}
+                      >
+                        {deleteLoading === video._id ? <span className="animate-spin">🗑️</span> : <span role="img" aria-label="delete">🗑️</span>} Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {totalPages > 1 && (
-        <div className="mt-6 flex justify-between items-center">
-          <div className="text-sm text-gray-700">
-            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} results
-          </div>
-          <div className="flex space-x-2">
-            <button onClick={() => setPage(page - 1)} disabled={page === 1} className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-50">Previous</button>
-            <span className="px-3 py-1 text-sm">Page {page} of {totalPages}</span>
-            <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-50">Next</button>
-          </div>
-        </div>
-      )}
-      <AddVideoModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={fetchVideos} />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex gap-2 items-center justify-center mt-8">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="px-4 py-2 rounded-lg bg-orange-500 text-black font-bold disabled:opacity-50 shadow"
+        >
+          ← Previous
+        </button>
+        <span className="font-semibold text-base">Page {page} of {Math.ceil(total / limit) || 1} ({total} total videos)</span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={page >= Math.ceil(total / limit)}
+          className="px-4 py-2 rounded-lg bg-orange-500 text-black font-bold disabled:opacity-50 shadow"
+        >
+          Next →
+        </button>
+      </div>
+
+      <AddVideoModal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)} 
+        onSuccess={fetchVideos} 
+      />
     </div>
   );
 } 
