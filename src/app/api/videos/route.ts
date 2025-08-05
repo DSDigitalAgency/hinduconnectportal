@@ -10,43 +10,58 @@ export async function GET(req: NextRequest) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
   }
+
   const client = new MongoClient(uri);
   try {
     await client.connect();
     const db = client.db(dbName);
-    const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get('page') || '1', 10);
-    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+    const { searchParams } = new URL(req.url);
+    
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const search = searchParams.get('search') || '';
+    const category = searchParams.get('category') || '';
+    const language = searchParams.get('language') || '';
+    
     const skip = (page - 1) * limit;
-    const search = url.searchParams.get('search')?.trim();
-    const category = url.searchParams.get('category')?.trim();
     
-    let filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = {};
     
-    // Build filter conditions
-    const conditions: Record<string, unknown>[] = [];
-    
+    // Build search filter
     if (search) {
-      conditions.push({
-        $or: [
-          { title: { $regex: search, $options: 'i' } },
-          { category: { $regex: search, $options: 'i' } }
-        ],
-      });
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } }
+      ];
     }
     
+    // Add category filter
     if (category) {
-      conditions.push({ category: { $regex: category, $options: 'i' } });
+      filter.category = category;
     }
-
-    if (conditions.length > 0) {
-      filter = conditions.length === 1 ? conditions[0] : { $and: conditions };
+    
+    // Only add language filter if it's provided and not empty
+    if (language && language.trim() !== '') {
+      filter.language = language;
     }
     
     const total = await db.collection('videos').countDocuments(filter);
-    const items = await db.collection('videos').find(filter).skip(skip).limit(limit).sort({ createddt: -1 }).toArray();
-    return NextResponse.json({ items, total, page, limit });
+    const items = await db.collection('videos')
+      .find(filter)
+      .sort({ createddt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    
+    // Add default language for videos that don't have it
+    const processedItems = items.map(item => ({
+      ...item,
+      language: item.language || 'English' // Default to English for existing videos
+    }));
+    
+    return NextResponse.json({ items: processedItems, total, page, limit });
   } catch (error) {
+    console.error('Error fetching videos:', error);
     return NextResponse.json({ message: 'Error fetching videos', error: String(error) }, { status: 500 });
   } finally {
     await client.close();
@@ -57,6 +72,7 @@ export async function POST(req: NextRequest) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
   }
+  
   const client = new MongoClient(uri);
   try {
     const body = await req.json();
@@ -67,19 +83,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Video URL, title, and category are required' }, { status: 400 });
     }
     
-    // Generate a unique video id
-    const generateVideoId = () => {
-      const timestamp = Date.now().toString(36);
-      const randomStr = Math.random().toString(36).substring(2, 8);
-      return `video_${timestamp}_${randomStr}`;
-    };
-    
-    const id = generateVideoId();
     const doc = {
-      id,
+      id: `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       videourl: body.videourl,
       title: body.title,
       category: body.category,
+      language: body.language || 'English', // Default to English if not provided
       createddt: new Date().toISOString(),
       updateddt: new Date().toISOString()
     };
@@ -88,6 +97,7 @@ export async function POST(req: NextRequest) {
     const inserted = await db.collection('videos').findOne({ _id: result.insertedId });
     return NextResponse.json({ item: inserted }, { status: 201 });
   } catch (error) {
+    console.error('Error creating video:', error);
     return NextResponse.json({ message: 'Error creating video', error: String(error) }, { status: 500 });
   } finally {
     await client.close();

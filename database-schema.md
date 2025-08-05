@@ -13,6 +13,7 @@ Each video document will have the following structure:
   "videourl": "string",
   "title": "string",
   "category": "string",
+  "language": "string",
   "createddt": "string (ISO date)",
   "updateddt": "string (ISO date)"
 }
@@ -27,6 +28,7 @@ Each video document will have the following structure:
 | `videourl` | String | YouTube or other video platform URL | `"https://youtu.be/OnTcMuv2Tsk"` |
 | `title` | String | Title of the video | `"Bhagavad Gita Chapter 1 - Arjuna Vishada Yoga"` |
 | `category` | String | Category of the video content | `"Bhajans"`, `"Discourses"`, `"Temple Tours"` |
+| `language` | String | Language of the video content | `"English"`, `"Hindi"`, `"Sanskrit"`, etc. |
 | `createddt` | String | Creation timestamp (ISO format) | `"2025-07-31T16:00:26.285Z"` |
 | `updateddt` | String | Last update timestamp (ISO format) | `"2025-07-31T16:00:26.285Z"` |
 
@@ -46,6 +48,24 @@ The videos are organized into the following categories:
 - **Movies**: Film and entertainment content
 - **Pravachanas**: Spiritual discourses and lectures
 
+### Languages
+
+The videos support the following languages:
+- **English**: English language content
+- **Hindi**: Hindi language content
+- **Sanskrit**: Sanskrit language content
+- **Tamil**: Tamil language content
+- **Telugu**: Telugu language content
+- **Malayalam**: Malayalam language content
+- **Kannada**: Kannada language content
+- **Bengali**: Bengali language content
+- **Gujarati**: Gujarati language content
+- **Marathi**: Marathi language content
+- **Punjabi**: Punjabi language content
+- **Odia**: Odia language content
+- **Assamese**: Assamese language content
+- **Urdu**: Urdu language content
+
 ### Example Document
 
 ```json
@@ -55,6 +75,7 @@ The videos are organized into the following categories:
   "videourl": "https://youtu.be/OnTcMuv2Tsk",
   "title": "Bhagavad Gita Chapter 1 - Arjuna Vishada Yoga",
   "category": "Shastras",
+  "language": "English",
   "createddt": "2025-07-31T16:00:26.285Z",
   "updateddt": "2025-07-31T16:00:26.285Z"
 }
@@ -69,6 +90,7 @@ db.videos.insertOne({
   videourl: "https://youtu.be/example",
   title: "Video Title",
   category: "Shastras",
+  language: "English",
   createddt: new Date().toISOString(),
   updateddt: new Date().toISOString()
 })
@@ -79,17 +101,23 @@ db.videos.insertOne({
 db.videos.find({ category: "Shastras" })
 ```
 
+#### Find Videos by Language
+```javascript
+db.videos.find({ language: "English" })
+```
+
 #### Find Videos by Title (Partial Match)
 ```javascript
 db.videos.find({ title: { $regex: "Bhagavad", $options: "i" } })
 ```
 
-#### Search in Title and Category
+#### Search in Title, Category, and Language
 ```javascript
 db.videos.find({
   $or: [
     { title: { $regex: "yoga", $options: "i" } },
-    { category: { $regex: "yoga", $options: "i" } }
+    { category: { $regex: "yoga", $options: "i" } },
+    { language: { $regex: "english", $options: "i" } }
   ]
 })
 ```
@@ -102,6 +130,7 @@ db.videos.updateOne(
     $set: { 
       title: "Updated Title",
       category: "Worship",
+      language: "Hindi",
       updateddt: new Date().toISOString()
     }
   }
@@ -122,11 +151,14 @@ db.videos.createIndex({ id: 1 }, { unique: true })
 // Index on category for filtering
 db.videos.createIndex({ category: 1 })
 
+// Index on language for filtering
+db.videos.createIndex({ language: 1 })
+
 // Index on title for search functionality
 db.videos.createIndex({ title: 1 })
 
 // Text index for full-text search
-db.videos.createIndex({ title: "text", category: "text" })
+db.videos.createIndex({ title: "text", category: "text", language: "text" })
 
 // Index on creation date for sorting
 db.videos.createIndex({ createddt: -1 })
@@ -137,6 +169,7 @@ db.videos.createIndex({ createddt: -1 })
 Based on typical video content:
 - **Total Videos**: 100+ videos across various categories
 - **Categories**: 12 main categories covering different aspects of Hindu culture and spirituality
+- **Languages**: 14 languages including major Indian languages and English
 - **Content**: YouTube and other video platform URLs
 
 ### Benefits of This Structure

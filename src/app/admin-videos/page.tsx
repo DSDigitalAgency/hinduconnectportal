@@ -8,6 +8,7 @@ interface Video {
   videourl: string;
   title: string;
   category: string;
+  language: string;
   createddt: string;
   updateddt?: string;
 }
@@ -16,6 +17,7 @@ function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
   const [videourl, setVideourl] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("General");
+  const [language, setLanguage] = useState("English");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,21 +25,31 @@ function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
     e.preventDefault();
     setLoading(true);
     setError("");
-    try {
-      const res = await fetch("/api/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videourl, title, category }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || "Failed to add video");
-        setLoading(false);
-        return;
-      }
+         try {
+       const requestBody = { 
+         videourl, 
+         title, 
+         category, 
+         language: language || 'English' 
+       };
+       console.log('Sending request:', requestBody);
+       
+       const res = await fetch("/api/videos", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify(requestBody),
+       });
+             if (!res.ok) {
+         const data = await res.json();
+         console.error('API Error:', data);
+         setError(data.message || "Failed to add video");
+         setLoading(false);
+         return;
+       }
       setVideourl("");
       setTitle("");
       setCategory("General");
+      setLanguage("English");
       setLoading(false);
       onSuccess();
       onClose();
@@ -94,6 +106,29 @@ function AddVideoModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
               <option value="Pravachanas">Pravachanas</option>
             </select>
           </div>
+                     <div>
+             <label className="block text-sm font-medium mb-1">Language</label>
+             <select
+               value={language}
+               onChange={e => setLanguage(e.target.value)}
+               className="w-full p-2 border border-gray-300 rounded"
+             >
+              <option value="English">English</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Sanskrit">Sanskrit</option>
+              <option value="Tamil">Tamil</option>
+              <option value="Telugu">Telugu</option>
+              <option value="Malayalam">Malayalam</option>
+              <option value="Kannada">Kannada</option>
+              <option value="Bengali">Bengali</option>
+              <option value="Gujarati">Gujarati</option>
+              <option value="Marathi">Marathi</option>
+              <option value="Punjabi">Punjabi</option>
+              <option value="Odia">Odia</option>
+              <option value="Assamese">Assamese</option>
+              <option value="Urdu">Urdu</option>
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Video URL *</label>
             <input
@@ -126,39 +161,49 @@ export default function AdminVideosPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const [filterLanguage, setFilterLanguage] = useState("");
   const router = useRouter();
 
-  // Session check
-  React.useEffect(() => {
-    fetch('/api/session')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.authenticated) {
-          router.replace('/');
-        }
-      });
-  }, [router]);
+     // Session check
+   React.useEffect(() => {
+     fetch('/api/session')
+       .then(res => res.json())
+       .then(data => {
+         console.log('Session check result:', data);
+         if (!data.authenticated) {
+           router.replace('/');
+         }
+       })
+       .catch(error => {
+         console.error('Session check error:', error);
+       });
+   }, [router]);
 
   const fetchVideos = useCallback(async () => {
     setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-      });
-      if (search) params.append('search', search);
-      if (filterCategory) params.append('category', filterCategory);
-      
-      const res = await fetch(`/api/videos?${params.toString()}`);
-      const data = await res.json();
-      setVideos(data.items || []);
-      setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching videos:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, limit, search, filterCategory]);
+         try {
+       const params = new URLSearchParams({
+         page: String(page),
+         limit: String(limit),
+       });
+       if (search) params.append('search', search);
+       if (filterCategory) params.append('category', filterCategory);
+       if (filterLanguage) params.append('language', filterLanguage);
+       
+       const url = `/api/videos?${params.toString()}`;
+       console.log('Fetching videos from:', url);
+       
+       const res = await fetch(url);
+       const data = await res.json();
+       console.log('Videos response:', data);
+       setVideos(data.items || []);
+       setTotal(data.total || 0);
+     } catch (err) {
+       console.error('Error fetching videos:', err);
+     } finally {
+       setLoading(false);
+     }
+  }, [page, limit, search, filterCategory, filterLanguage]);
 
   useEffect(() => {
     fetchVideos();
@@ -197,6 +242,12 @@ export default function AdminVideosPage() {
     "Movies", "Pravachanas"
   ];
 
+  const languageOptions = [
+    "English", "Hindi", "Sanskrit", "Tamil", "Telugu", "Malayalam", 
+    "Kannada", "Bengali", "Gujarati", "Marathi", "Punjabi", 
+    "Odia", "Assamese", "Urdu"
+  ];
+
   return (
     <div className="p-4 sm:p-8 bg-[#fff7ed] min-h-screen">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
@@ -212,33 +263,46 @@ export default function AdminVideosPage() {
         </button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Search</label>
-            <input
-              type="text"
-              placeholder="Search by title or category..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Category</label>
-            <select
-              value={filterCategory}
-              onChange={e => setFilterCategory(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            >
-              <option value="">All Categories</option>
-              {categoryOptions.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+             {/* Search and Filters */}
+       <div className="bg-white rounded-lg shadow p-6 mb-6">
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+           <div>
+             <label className="block text-sm font-medium mb-1">Search</label>
+             <input
+               type="text"
+               placeholder="Search by title, category, or language..."
+               value={searchInput}
+               onChange={e => setSearchInput(e.target.value)}
+               className="w-full border px-3 py-2 rounded"
+             />
+           </div>
+           <div>
+             <label className="block text-sm font-medium mb-1">Category</label>
+             <select
+               value={filterCategory}
+               onChange={e => setFilterCategory(e.target.value)}
+               className="w-full border px-3 py-2 rounded"
+             >
+               <option value="">All Categories</option>
+               {categoryOptions.map(category => (
+                 <option key={category} value={category}>{category}</option>
+               ))}
+             </select>
+           </div>
+           <div>
+             <label className="block text-sm font-medium mb-1">Language</label>
+             <select
+               value={filterLanguage}
+               onChange={e => setFilterLanguage(e.target.value)}
+               className="w-full border px-3 py-2 rounded"
+             >
+               <option value="">All Languages</option>
+               {languageOptions.map(language => (
+                 <option key={language} value={language}>{language}</option>
+               ))}
+             </select>
+           </div>
+         </div>
         <div className="flex gap-2">
           <button
             onClick={() => {
@@ -249,38 +313,40 @@ export default function AdminVideosPage() {
           >
             Search
           </button>
-          <button
-            onClick={() => {
-              setSearch("");
-              setSearchInput("");
-              setFilterCategory("");
-              setPage(1);
-            }}
-            className="bg-gray-200 hover:bg-gray-300 text-black font-bold px-3 py-2 rounded transition"
-          >
-            Clear All
-          </button>
+                     <button
+             onClick={() => {
+               setSearch("");
+               setSearchInput("");
+               setFilterCategory("");
+               setFilterLanguage("");
+               setPage(1);
+             }}
+             className="bg-gray-200 hover:bg-gray-300 text-black font-bold px-3 py-2 rounded transition"
+           >
+             Clear All
+           </button>
         </div>
       </div>
 
       {/* Results */}
       <div className="overflow-x-auto rounded-2xl shadow border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="sticky top-0 bg-orange-100 z-10 rounded-t-2xl">
-            <tr>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tl-2xl">Video Info</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Category</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">URL</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Timestamps</th>
-              <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tr-2xl">Actions</th>
-            </tr>
-          </thead>
+                     <thead className="sticky top-0 bg-orange-100 z-10 rounded-t-2xl">
+             <tr>
+               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tl-2xl">Video Info</th>
+               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Category</th>
+               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Language</th>
+               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">URL</th>
+               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Timestamps</th>
+               <th className="border-b px-4 py-3 text-left text-orange-700 font-bold rounded-tr-2xl">Actions</th>
+             </tr>
+           </thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={5} className="text-center py-12"><span className="animate-spin inline-block mr-2">🌀</span>Loading...</td></tr>
-            ) : videos.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-12">No videos found.</td></tr>
-            ) : (
+                         ) : videos.length === 0 ? (
+               <tr><td colSpan={6} className="text-center py-12">No videos found.</td></tr>
+             ) : (
               videos.map((video, idx) => (
                 <tr key={video._id} className={
                   `transition ${idx % 2 === 0 ? 'bg-orange-50/50' : 'bg-white'} hover:bg-orange-100`}
@@ -293,28 +359,33 @@ export default function AdminVideosPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="border-b px-4 py-3">
-                    <div className="text-sm">
-                      <div className="font-medium text-blue-600">{video.category}</div>
-                    </div>
-                  </td>
-                  <td className="border-b px-4 py-3">
-                    <div className="text-sm">
-                      <a 
-                        href={video.videourl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline"
-                      >
-                        {video.videourl}
-                      </a>
-                      {getVideoId(video.videourl) && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          🎥 Video ID: {getVideoId(video.videourl)}
-                        </div>
-                      )}
-                    </div>
-                  </td>
+                                     <td className="border-b px-4 py-3">
+                     <div className="text-sm">
+                       <div className="font-medium text-blue-600">{video.category}</div>
+                     </div>
+                   </td>
+                   <td className="border-b px-4 py-3">
+                     <div className="text-sm">
+                       <div className="font-medium text-green-600">{video.language}</div>
+                     </div>
+                   </td>
+                   <td className="border-b px-4 py-3">
+                     <div className="text-sm">
+                       <a 
+                         href={video.videourl} 
+                         target="_blank" 
+                         rel="noopener noreferrer"
+                         className="text-blue-600 hover:text-blue-800 underline"
+                       >
+                         {video.videourl}
+                       </a>
+                       {getVideoId(video.videourl) && (
+                         <div className="text-xs text-gray-500 mt-1">
+                           🎥 Video ID: {getVideoId(video.videourl)}
+                         </div>
+                       )}
+                     </div>
+                   </td>
                   <td className="border-b px-4 py-3">
                     <div className="text-xs space-y-1">
                       <div className="text-gray-600">

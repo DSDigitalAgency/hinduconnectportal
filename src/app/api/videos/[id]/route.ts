@@ -6,23 +6,16 @@ dotenv.config({ path: '.env.local' });
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB_NAME || 'hinduconnect';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
-  }
-
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ message: 'Invalid video ID' }, { status: 400 });
   }
 
   const client = new MongoClient(uri);
   try {
     await client.connect();
     const db = client.db(dbName);
+    const { id } = await context.params;
     
     const video = await db.collection('videos').findOne({ _id: new ObjectId(id) });
     
@@ -30,25 +23,24 @@ export async function GET(
       return NextResponse.json({ message: 'Video not found' }, { status: 404 });
     }
     
-    return NextResponse.json(video);
+    // Add default language if it doesn't exist
+    const processedVideo = {
+      ...video,
+      language: video.language || 'English'
+    };
+    
+    return NextResponse.json({ item: processedVideo });
   } catch (error) {
+    console.error('Error fetching video:', error);
     return NextResponse.json({ message: 'Error fetching video', error: String(error) }, { status: 500 });
   } finally {
     await client.close();
   }
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
-  }
-
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ message: 'Invalid video ID' }, { status: 400 });
   }
 
   const client = new MongoClient(uri);
@@ -56,6 +48,7 @@ export async function PUT(
     const body = await req.json();
     await client.connect();
     const db = client.db(dbName);
+    const { id } = await context.params;
     
     if (!body.videourl || !body.title || !body.category) {
       return NextResponse.json({ message: 'Video URL, title, and category are required' }, { status: 400 });
@@ -65,7 +58,8 @@ export async function PUT(
       videourl: body.videourl,
       title: body.title,
       category: body.category,
-      updateddt: new Date().toISOString()
+      language: body.language || 'English', // Default to English if not provided
+      updateddt: new Date().toISOString(),
     };
     
     const result = await db.collection('videos').updateOne(
@@ -80,29 +74,23 @@ export async function PUT(
     const updated = await db.collection('videos').findOne({ _id: new ObjectId(id) });
     return NextResponse.json({ item: updated });
   } catch (error) {
+    console.error('Error updating video:', error);
     return NextResponse.json({ message: 'Error updating video', error: String(error) }, { status: 500 });
   } finally {
     await client.close();
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
-  }
-
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ message: 'Invalid video ID' }, { status: 400 });
   }
 
   const client = new MongoClient(uri);
   try {
     await client.connect();
     const db = client.db(dbName);
+    const { id } = await context.params;
     
     const result = await db.collection('videos').deleteOne({ _id: new ObjectId(id) });
     
@@ -110,7 +98,7 @@ export async function DELETE(
       return NextResponse.json({ message: 'Video not found' }, { status: 404 });
     }
     
-    return NextResponse.json({ message: 'Video deleted successfully' }, { status: 200 });
+    return NextResponse.json({ message: 'Video deleted successfully' });
   } catch (error) {
     return NextResponse.json({ message: 'Error deleting video', error: String(error) }, { status: 500 });
   } finally {
