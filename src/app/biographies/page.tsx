@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Search, Plus, BookOpen, Calendar, User } from 'lucide-react';
+// removed unused imports to satisfy linter
 
 interface Biography {
   _id: string;
@@ -101,6 +100,10 @@ export default function BiographiesPage() {
 
   const totalPages = Math.ceil(total / limit);
 
+  // Floating actions menu like other modules
+  const [menu, setMenu] = useState<{ id: string; top: number; left: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   const truncateContent = (content: string, maxLength: number = 100) => {
     const plainText = content.replace(/#{1,6}\s+/g, '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
     if (plainText.length <= maxLength) return plainText;
@@ -115,15 +118,44 @@ export default function BiographiesPage() {
     });
   };
 
+  const openMenu = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const menuWidth = 160;
+    const gap = 8;
+    const left = Math.max(12, Math.min(window.innerWidth - menuWidth - 12, rect.right - menuWidth));
+    const top = Math.min(window.innerHeight - 120, rect.bottom + gap);
+    setMenu({ id, top, left });
+  };
+
+  useEffect(() => {
+    const onClick = (ev: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (ev.target instanceof Node && menuRef.current.contains(ev.target)) return;
+      setMenu(null);
+    };
+    const onEsc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setMenu(null); };
+    const onScroll = () => setMenu(null);
+    if (menu) {
+      document.addEventListener('mousedown', onClick);
+      document.addEventListener('keydown', onEsc);
+      window.addEventListener('scroll', onScroll, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onEsc);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [menu]);
+
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manage Biographies</h1>
+    <div className="p-4 sm:p-8 bg-[#fff7ed] min-h-screen">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+        <h1 className="text-3xl font-extrabold text-orange-600 tracking-tight">Biographies</h1>
         <button
           onClick={() => router.push('/biographies/add')}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-black font-bold px-5 py-2 rounded-lg shadow transition text-base focus:outline-none focus:ring-2 focus:ring-orange-400"
         >
-          Add New Biography
+          <span role="img" aria-label="add">➕</span> Add New Biography
         </button>
       </div>
 
@@ -158,18 +190,18 @@ export default function BiographiesPage() {
         <div className="text-center py-8">Loading...</div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="min-w-full text-sm">
+            <thead className="sticky top-0 bg-orange-100 z-10 rounded-t-2xl">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TITLE</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PREVIEW</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CREATED</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Title</th>
+                <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Preview</th>
+                <th className="border-b px-4 py-3 text-left text-orange-700 font-bold">Created</th>
+                <th className="border-b px-4 py-3 text-left text-orange-700 font-bold w-16">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {biographies.map((biography) => (
-                <tr key={biography._id} className="hover:bg-gray-50">
+            <tbody>
+              {biographies.map((biography, idx) => (
+                <tr key={biography._id} className={`transition ${idx % 2 === 0 ? 'bg-orange-50/50' : 'bg-white'} hover:bg-orange-100`}>
                   <td className="px-4 py-4 text-sm font-medium text-gray-900">
                     <div className="truncate max-w-[300px]" title={biography.title}>
                       {biography.title}
@@ -183,17 +215,48 @@ export default function BiographiesPage() {
                   <td className="px-4 py-4 text-sm text-gray-900 whitespace-nowrap">
                     {formatDate(biography.createddt)}
                   </td>
-                  <td className="px-4 py-4 text-sm font-medium whitespace-nowrap">
-                    <div className="flex space-x-2">
-                      <button onClick={() => handleView(biography)} className="text-green-600 hover:text-green-900">View</button>
-                      <button onClick={() => handleEdit(biography)} className="text-blue-600 hover:text-blue-900">Edit</button>
-                      <button onClick={() => handleDelete(biography._id)} disabled={deleteLoading === biography._id} className="text-red-600 hover:text-red-900 disabled:opacity-50">{deleteLoading === biography._id ? "Deleting..." : "Delete"}</button>
-                    </div>
+                  <td className="px-2 py-4 text-sm font-medium whitespace-nowrap">
+                    <button
+                      onClick={(e) => openMenu(biography._id, e)}
+                      className="px-2 py-1 rounded hover:bg-orange-200"
+                      aria-label="Actions"
+                    >
+                      ⋮
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Floating actions menu */}
+      {menu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 w-40 rounded-md border bg-white shadow-lg"
+          style={{ top: menu.top, left: menu.left }}
+        >
+          <button
+            className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50"
+            onClick={() => { const id = menu.id; setMenu(null); router.push(`/biographies/${id}`); }}
+          >
+            👁️ View
+          </button>
+          <button
+            className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50"
+            onClick={() => { const id = menu.id; setMenu(null); router.push(`/biographies/edit/${id}`); }}
+          >
+            ✏️ Edit
+          </button>
+          <button
+            className="w-full text-left px-3 py-2 text-sm text-red-700 hover:bg-orange-50 disabled:opacity-50"
+            onClick={() => { const id = menu.id; setMenu(null); handleDelete(id); }}
+            disabled={deleteLoading === menu.id}
+          >
+            🗑️ {deleteLoading === menu.id ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       )}
 

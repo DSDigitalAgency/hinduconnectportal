@@ -25,24 +25,31 @@ export async function GET(req: NextRequest) {
     
     const skip = (page - 1) * limit;
     
-    const filter: Record<string, unknown> = {};
-    
-    // Build search filter
+    // Build filter using $and blocks to avoid any casts
+    let filter: Record<string, unknown> = {};
+    const andConditions: Record<string, unknown>[] = [];
+
     if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } }
-      ];
+      andConditions.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { category: { $regex: search, $options: 'i' } },
+        ],
+      });
     }
-    
-    // Add category filter
+
     if (category) {
-      filter.category = category;
+      andConditions.push({ category });
     }
-    
-    // Only add language filter if it's provided and not empty
+
     if (language && language.trim() !== '') {
-      filter.language = language;
+      andConditions.push({ $or: [{ language }, { lang: language }] });
+    }
+
+    if (andConditions.length === 1) {
+      filter = andConditions[0];
+    } else if (andConditions.length > 1) {
+      filter = { $and: andConditions };
     }
     
     const total = await db.collection('videos').countDocuments(filter);
@@ -53,11 +60,15 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .toArray();
     
-    // Add default language for videos that don't have it
-    const processedItems = items.map(item => ({
-      ...item,
-      language: item.language || 'English' // Default to English for existing videos
-    }));
+    // Normalize output: expose 'language' for UI and keep original fields
+    type VideoDoc = { language?: string; lang?: string };
+    const processedItems = items.map((item) => {
+      const doc = item as unknown as VideoDoc;
+      return {
+        ...item,
+        language: doc.language ?? doc.lang ?? 'English',
+      };
+    });
     
     return NextResponse.json({ items: processedItems, total, page, limit });
   } catch (error) {
@@ -88,7 +99,8 @@ export async function POST(req: NextRequest) {
       videourl: body.videourl,
       title: body.title,
       category: body.category,
-      language: body.language || 'English', // Default to English if not provided
+      // Store under 'lang' to avoid MongoDB text-index language override conflicts
+      lang: body.language || 'English',
       createddt: new Date().toISOString(),
       updateddt: new Date().toISOString()
     };

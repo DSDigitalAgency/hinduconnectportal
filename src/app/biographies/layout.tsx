@@ -15,11 +15,11 @@ export default function BiographiesLayout({ children }: { children: React.ReactN
         <div>
           <div className="text-2xl font-bold mb-8">Portal Admin</div>
           <ul className="space-y-2">
-            <li><Link href="/admin-stotras" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Stotras</Link></li>
-            <li><Link href="/admin-temples" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Temples</Link></li>
-            <li><Link href="/admin-blogs" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Blogs</Link></li>
-            <li><Link href="/admin-videos" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Videos</Link></li>
-            <li><Link href="/admin-users" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Users</Link></li>
+            <li><Link href="/stotras" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Stotras</Link></li>
+            <li><Link href="/temples" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Temples</Link></li>
+            <li><Link href="/blogs" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Blogs</Link></li>
+            <li><Link href="/videos" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Videos</Link></li>
+            <li><Link href="/users" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Users</Link></li>
             <li><Link href="/biographies" className="block py-2 px-4 hover:bg-orange-200 hover:text-orange-900 rounded">Biographies</Link></li>
           </ul>
         </div>

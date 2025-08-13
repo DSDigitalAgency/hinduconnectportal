@@ -61,6 +61,7 @@ export async function PUT(req: NextRequest, context: any) {
       title: body.title,
       text: body.text,
       lang: body.language,
+      ...(typeof body.subtitle === 'string' ? { subtitle: body.subtitle } : {}),
       updateddt: new Date().toISOString(),
     };
     

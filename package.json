@@ -6,7 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "update-stotras-subtitle": "node scripts/update-stotras-subtitle.mjs",
+    "update-stotras-subtitle-devanagari": "node scripts/update-stotras-subtitle-devanagari.mjs",
+    "update-stotras-subtitle-tamil": "node scripts/update-stotras-subtitle-tamil.mjs",
+    "update-stotras-subtitle-malayalam": "node scripts/update-stotras-subtitle-malayalam.mjs",
+    "update-stotras-subtitle-kannada": "node scripts/update-stotras-subtitle-kannada.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -25,7 +30,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
+    "node-fetch": "^3.3.2",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

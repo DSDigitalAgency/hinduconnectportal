@@ -27,8 +27,8 @@ export default function LoginPage() {
       }
       // Store token in localStorage
       localStorage.setItem("token", data.token);
-      // Redirect to admin videos page
-      router.push("/admin-videos");
+      // Redirect to stotras page
+      router.push("/stotras");
     } catch (err) {
       setError("Network error");
       setLoading(false);

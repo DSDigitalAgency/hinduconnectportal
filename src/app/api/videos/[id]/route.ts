@@ -6,7 +6,9 @@ dotenv.config({ path: '.env.local' });
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB_NAME || 'hinduconnect';
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+type RouteParams = { id: string };
+
+export async function GET(req: NextRequest, context: { params: Promise<RouteParams> }) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
   }
@@ -26,7 +28,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     // Add default language if it doesn't exist
     const processedVideo = {
       ...video,
-      language: video.language || 'English'
+      language: (video as { language?: string; lang?: string }).language || (video as { language?: string; lang?: string }).lang || 'English'
     };
     
     return NextResponse.json({ item: processedVideo });
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, context: { params: Promise<RouteParams> }) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
   }
@@ -58,7 +60,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       videourl: body.videourl,
       title: body.title,
       category: body.category,
-      language: body.language || 'English', // Default to English if not provided
+      lang: body.language || 'English',
       updateddt: new Date().toISOString(),
     };
     
@@ -81,7 +83,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<RouteParams> }) {
   if (!uri) {
     return NextResponse.json({ message: 'MONGODB_URI not set' }, { status: 500 });
   }

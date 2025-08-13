@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       title: body.title,
       text: body.text,
       lang: body.language,
+      subtitle: body.subtitle || '',
       createddt: new Date().toISOString(),
       updateddt: new Date().toISOString(),
     };
